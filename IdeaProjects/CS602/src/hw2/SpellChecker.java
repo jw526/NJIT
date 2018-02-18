@@ -74,8 +74,7 @@ public class SpellChecker {
      * @param dictionaryFile
      */
     public SpellChecker(String dictionaryFile) throws IOException {
-        SpellChecker.Dictionary dict = new SpellChecker.Dictionary(dictionaryFile);
-        this.dict = dict;
+        this.dict = new SpellChecker.Dictionary(dictionaryFile);
     }
 
     /**

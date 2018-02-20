@@ -90,79 +90,79 @@ public class SpellChecker {
      * @param targetFile input file
      * @param outputFile output file
      */
-    public void checkWords(String targetFile, String outputFile) throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader(targetFile));
-        BufferedWriter out = new BufferedWriter(new FileWriter(outputFile));
-        String line = reader.readLine();
-        String input = "";
-        //read in target file, set it to be the input
-        while(line != null){
-            input = input + line + System.lineSeparator();
-            line = reader.readLine();
-        }
-        reader.close();
-        //separate the punctuation marks
-        char[] punc = PUNCTUATION_MARKS.toCharArray();
-        String[] tkn = input.split("[\\s]+");
-        for(int i =0; i < tkn.length; i++){
-            String new_tkn ="";
-            for (int j = 0; j < punc.length; j++){
-                //new_tkn is tkn without punctuation
-                if(tkn[i].contains(String.valueOf(punc[j]))){
-                   new_tkn = tkn[i].replace(String.valueOf(punc[j]),"");
-                   break;
-                }
-                else new_tkn = tkn[i];
-            }
-            //Check if the word is in the dictionary. If it is, include it in the sentence to be output
-            if (dict.isValid(new_tkn)){
-                out.write(tkn[i]+ " ");
-            }
-            else {
-                System.out.println("Enter option for word \""+ new_tkn +"\"\n1: Ignore Rule, 2: Valid Word, 3: Correct Word, 4: Ignore Word");
-                Scanner s = new Scanner(System.in);
-                int option = s.nextInt();
-                switch (option) {
-                    case IGNORE_RULE_OPTION:
-                        out.write(tkn[i] + " ");
-                        break;
-                    case VALID_WORD_OPTION:
-                        out.write(tkn[i] + " ");
-                        dict.addWord(new_tkn);
-                        break;
-                    case CORRECT_WORD_OPTION:
-                        System.out.println("Enter the correct word:");
-                        String word = s.next();
-                        //check for non alphabetic characters
-                        for (int k = 0; k < word.length(); k++) {
-                            if (word.toLowerCase().charAt(k) > 122 || word.toLowerCase().charAt(k) < 97) {
-                                System.out.println("Enter a valid word with English characters only:");
-                                word = s.next();
-                                k = 0;
-                            } else continue;
-                        }
-                        dict.addWord(word);
-                        //if the original token has a punctuation mark, write the word + punctuation mark
-                        if (PUNCTUATION_MARKS.contains(tkn[i].substring(new_tkn.length())))
-                            out.write(word + tkn[i].substring(new_tkn.length()) + " ");
-                        else
-                            out.write(word + " ");
-                        break;
-                    case IGNORE_WORD_OPTION:
-                        if (PUNCTUATION_MARKS.contains(tkn[i].substring(new_tkn.length()))) {
-                            out.write(tkn[i].substring(new_tkn.length()) + " ");
-                        }
-                        break;
-                    default:
-                        System.out.println("Invalid input, try again");
-                        i--;
-                        break;
-                }
-            }
-            //put a line break after 21 words
-            if((i+1)%21 == 0) out.newLine();
-        }
-    out.close();
+     public void checkWords(String targetFile, String outputFile) throws IOException {
+          char[] punc = PUNCTUATION_MARKS.toCharArray();
+          try {
+              BufferedReader reader = new BufferedReader(new FileReader(targetFile));
+              BufferedWriter out = new BufferedWriter(new FileWriter(outputFile));
+              String line = null;
+              //read in target file line by line
+              while ((line = reader.readLine()) != null) {
+                  //split on whitespace
+                  String[] tkn = line.split("[\\s]+");
+                  for (int i = 0; i < tkn.length; i++) {
+                      String new_tkn = "";
+                      for (int j = 0; j < punc.length; j++) {
+                          //new_tkn is tkn without punctuation
+                          if (tkn[i].contains(String.valueOf(punc[j]))) {
+                              //replace punc with empty string
+                              new_tkn = tkn[i].replace(String.valueOf(punc[j]), "");
+                              break;
+                          } else new_tkn = tkn[i];
+                      }
+                      //Check if the word is in the dictionary. If it is, include it in the sentence to be output
+                      if (dict.isValid(new_tkn)) {
+                          out.write(tkn[i] + " ");
+                      } else {
+                          System.out.println("Enter option for word \"" + new_tkn + "\"\n1: Ignore Rule, 2: Valid Word, 3: Correct Word, 4: Ignore Word");
+                          Scanner s = new Scanner(System.in);
+                          int option = s.nextInt();
+                          switch (option) {
+                              case IGNORE_RULE_OPTION:
+                                  out.write(tkn[i] + " ");
+                                  break;
+                              case VALID_WORD_OPTION:
+                                  out.write(tkn[i] + " ");
+                                  dict.addWord(new_tkn);
+                                  break;
+                              case CORRECT_WORD_OPTION:
+                                  System.out.println("Enter the correct word:");
+                                  String word = s.next();
+                                  //check for non alphabetic characters
+                                  for (int k = 0; k < word.length(); k++) {
+                                      //ascii # for a-z
+                                      if (word.toLowerCase().charAt(k) > 122 || word.toLowerCase().charAt(k) < 97) {
+                                          System.out.println("Enter a valid word with English characters only:");
+                                          word = s.next();
+                                          k = 0;
+                                      } else continue;
+                                  }
+                                  dict.addWord(word);
+                                  //if the original token has a punctuation mark, write the word + punctuation mark
+                                  if (PUNCTUATION_MARKS.contains(tkn[i].substring(new_tkn.length())))
+                                      out.write(word + tkn[i].substring(new_tkn.length()) + " ");
+                                  else
+                                      out.write(word + " ");
+                                  break;
+                              case IGNORE_WORD_OPTION:
+                                  if (PUNCTUATION_MARKS.contains(tkn[i].substring(new_tkn.length()))) {
+                                      out.write(tkn[i].substring(new_tkn.length()) + " ");
+                                  }
+                                  break;
+                              default:
+                                  System.out.println("Invalid input, try again");
+                                  i--;
+                                  break;
+                          }
+                      }
+                      //put a line break after 21 words
+                      if ((i + 1) % 21 == 0) out.newLine();
+                  }
+              }
+              out.close();
+          }catch (IOException e){
+              e.printStackTrace();
+          }
     }
 
 

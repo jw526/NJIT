@@ -50,8 +50,8 @@ public class LRUCache<K,T extends Cacheable<K>> {
      */
     public LRUCache(int size, Persister<? extends K,? extends T> persister) {
         itemMap = new HashMap<>(size);
-        //lruList = new LinkedList<>();
-        lruList = new ArrayList<>();
+        lruList = new LinkedList<>();
+        //lruList = new ArrayList<>();
         this.size = size;
         this.itr = new CacheKeyIterator<K>();
         this.persister = persister;
@@ -133,7 +133,7 @@ public class LRUCache<K,T extends Cacheable<K>> {
      */
     public double getFaultRatePercent() {
         if ((faults <= size)|| (counter == 0)) return 0;
-        else return (double) (faults - size)/counter *100;
+        else return (double) (faults - size)/(counter-size) *100;
     }
 
     /**

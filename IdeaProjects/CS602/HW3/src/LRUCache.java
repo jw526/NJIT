@@ -50,7 +50,8 @@ public class LRUCache<K,T extends Cacheable<K>> {
      */
     public LRUCache(int size, Persister<? extends K,? extends T> persister) {
         itemMap = new HashMap<>(size);
-        lruList = new ArrayList<>(size);
+        //lruList = new LinkedList<>();
+        lruList = new ArrayList<>();
         this.size = size;
         this.itr = new CacheKeyIterator<K>();
         this.persister = persister;
@@ -131,7 +132,8 @@ public class LRUCache<K,T extends Cacheable<K>> {
      * @return
      */
     public double getFaultRatePercent() {
-        return (counter == 0 ? 0:(double) faults/counter);
+        if ((faults <= size)|| (counter == 0)) return 0;
+        else return (double) (faults - size)/counter *100;
     }
 
     /**
@@ -162,6 +164,7 @@ public class LRUCache<K,T extends Cacheable<K>> {
         }
         cache.resetFaultRateStats();
         cache.modifySize(50);
+        long start = System.currentTimeMillis();
         for (int i=0; i < 100; i++) {
             cache.putItem(new SimpleCacheItem("name"+i, (int) (Math.random()*200000)));
             String name = "name" + (int) (Math.random() * i);
@@ -174,6 +177,7 @@ public class LRUCache<K,T extends Cacheable<K>> {
             cache.removeItem(name);
             System.out.println("Fault rate percent=" + cache.getFaultRatePercent());
         }
+        System.out.println("Time used: "+(System.currentTimeMillis()-start)+" ms");
     }
 
 

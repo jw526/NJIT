@@ -1,3 +1,5 @@
+//Jianchao Wang
+
 //package edu.njit.cs602.s2018.assignments;
 
 import java.util.*;
@@ -13,12 +15,8 @@ public class LRUCache<K,T extends Cacheable<K>> {
 
     // list in LRU order
     private final List<K> lruList;
-
-    private LRUCache.CacheKeyIterator itr;
     private Persister persister;
     private int size;
-    private Cacheable item;
-    //private K key;
     private int faults = 0;
     private int counter = 0;
 
@@ -39,7 +37,7 @@ public class LRUCache<K,T extends Cacheable<K>> {
         @Override
         public K next() {
             if (!hasNext()) throw new NoSuchElementException();
-            return (K) (lruList.get(++current));
+            else return (K) (lruList.get(current++));
         }
     }
 
@@ -49,11 +47,11 @@ public class LRUCache<K,T extends Cacheable<K>> {
      * @param persister persister instance to use for accessing/modifying evicted items
      */
     public LRUCache(int size, Persister<? extends K,? extends T> persister) {
+        if (size <=0) throw new IllegalArgumentException("size not valid");
         itemMap = new HashMap<>(size);
         lruList = new LinkedList<>();
         //lruList = new ArrayList<>();
         this.size = size;
-        this.itr = new CacheKeyIterator<K>();
         this.persister = persister;
     }
 
@@ -62,6 +60,20 @@ public class LRUCache<K,T extends Cacheable<K>> {
      * @param newSize
      */
     public void modifySize(int newSize) {
+        ArrayList<K> tempL = new ArrayList();
+        Map<K,Cacheable<K>> tempM = new HashMap<>(newSize);
+        Iterator<K> it = getCacheKeys();
+        int i = 0;
+        while (it.hasNext()&& i < newSize ){
+            K k = it.next();
+            tempL.add(k);
+            tempM.put(k,persister.getValue(k));
+            i++;
+        }
+        lruList.clear();
+        itemMap.clear();
+        lruList.addAll(tempL);
+        itemMap.putAll(tempM);
         this.size = newSize;
     }
 
@@ -72,28 +84,28 @@ public class LRUCache<K,T extends Cacheable<K>> {
      * @return
      */
     public T getItem(K key) {
-        counter++;
+        Cacheable item = persister.getValue(key);
+
         //if in the cache
-        if (itemMap.get(key)!=null) return (T) itemMap.get(key);
+        if (lruList.contains(key)){
+            lruList.remove(key);
+            lruList.add(0, key);
+            return (T) item;
+        }
         //not in cache but in persister
         if (persister.getValue(key)!= null) {
-            item = persister.getValue(key);
             faults++;
-            if (lruList.size()<size){
-                lruList.add(0,key);
-                itemMap.put(key,item);
-                //itemMap.put(key,item);
-                return (T) item;
-            }
-            else{
+            if (lruList.size()>=size){
                 //remove from cache based on LRU
-                removeItem(key);
-                lruList.add(0,key);
-                itemMap.put(key,item);
+                K k = lruList.remove(lruList.size()-1);
+                itemMap.remove(k);
                 return (T) item;
             }
+            lruList.add(0, key);
+            itemMap.put(key,item);
+            return (T) item;
         }
-        //not in both, return null
+        //not in either, return null
         return null;
     }
 
@@ -102,7 +114,21 @@ public class LRUCache<K,T extends Cacheable<K>> {
      * @param item item to be put
      */
     public void putItem(T item) {
-        persister.persistValue(item);
+        //new item put in both persister and cache
+        if (persister.getValue(item.getKey())==null){
+            persister.persistValue(item);
+            if (lruList.size()>=size){
+                //remove from cache based on LRU
+                K k = lruList.remove(lruList.size()-1);
+                itemMap.remove(k);
+            }
+            lruList.add(0, item.getKey());
+            itemMap.put(item.getKey(),item);
+        }
+        else {
+            persister.persistValue(item);
+            counter++;
+        }
     }
 
 
@@ -112,11 +138,12 @@ public class LRUCache<K,T extends Cacheable<K>> {
      * @return item removed or null if it does not exist
      */
     public T removeItem(K key) {
-        if(itr.hasNext()){
-            lruList.remove(lruList.size()-1);
-            return (T) (itemMap.remove(key));
-        }
-        return null;
+       if(itemMap.containsKey(key)||lruList.contains(key)){
+            lruList.remove(key);
+            itemMap.remove(key);
+            return (T) (persister.removeValue(key));
+       }
+       return null;
     }
 
     /**
@@ -124,7 +151,7 @@ public class LRUCache<K,T extends Cacheable<K>> {
      * @return
      */
     public Iterator<K> getCacheKeys() {
-        return new CacheKeyIterator<K>();
+        return new CacheKeyIterator<>();
     }
 
     /**
@@ -132,8 +159,7 @@ public class LRUCache<K,T extends Cacheable<K>> {
      * @return
      */
     public double getFaultRatePercent() {
-        if ((faults <= size)|| (counter == 0)) return 0;
-        else return (double) (faults - size)/(counter-size) *100;
+        return (counter==0? 0: (double) faults/counter *100);
     }
 
     /**
@@ -145,7 +171,7 @@ public class LRUCache<K,T extends Cacheable<K>> {
     }
 
     public static void main(String [] args) {
-        LRUCache<String,SimpleCacheItem> cache = new LRUCache<>(20, new SimpleFakePersister<>());
+        LRUCache<String,SimpleCacheItem> cache = new LRUCache<>(10, new SimpleFakePersister<>());
         for (int i=0; i < 100; i++) {
             cache.putItem(new SimpleCacheItem("name"+i, (int) (Math.random()*200000)));
             String name = "name" + (int) (Math.random() * i);
@@ -162,8 +188,14 @@ public class LRUCache<K,T extends Cacheable<K>> {
             String name = "name" + (int) (Math.random() * i);
             cache.removeItem(name);
         }
+        //for(String s: cache.lruList) {
+         //   System.out.println(s);
+        //}
         cache.resetFaultRateStats();
         cache.modifySize(50);
+        for(String s: cache.lruList) {
+            System.out.println(s);
+        }
         long start = System.currentTimeMillis();
         for (int i=0; i < 100; i++) {
             cache.putItem(new SimpleCacheItem("name"+i, (int) (Math.random()*200000)));
@@ -177,9 +209,13 @@ public class LRUCache<K,T extends Cacheable<K>> {
             cache.removeItem(name);
             System.out.println("Fault rate percent=" + cache.getFaultRatePercent());
         }
+        Iterator it = cache.getCacheKeys();
+        while(it.hasNext()){
+            System.out.println(it.next());
+        }
         System.out.println("Time used: "+(System.currentTimeMillis()-start)+" ms");
+        System.out.println(cache.lruList.size());
+        System.out.println(cache.itemMap.size());
     }
-
-
 
 }
